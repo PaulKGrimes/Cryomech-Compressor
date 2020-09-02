@@ -2,6 +2,8 @@ __version__ = '0.0.0'
 
 from time import sleep
 from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.payload import BinaryPayloadDecoder
+from pymodbus.constants import Endian
 
 default_IP = "192.168.0.105"
 
@@ -13,135 +15,57 @@ class Compressor(object):
     communicates with the Compressor Digital Panel over TCP/IP.
     """
     #: int: address of the controller's operating state register.
-    #       values are one of:
-    #           0: Idling - ready to start
-    #           2: Starting
-    #           3: Running
-    #           5: Stopping
-    #           6: Error lockout
-    #           7: Error
-    #           8: Helium cool down
-    #           9: Power related error
-    #           15: Recovered from error
     _operating_state_addr = 30001
 
     #: int: address of the controller's energized state register.
-    #       values are one of:
-    #           0: Off
-    #           1: On
-    _energized_addr = 30002
+    _enabled_addr = 30002
 
     #: int: address of the controller's warning register.
-    #       values are an OR of:
-    #           0: No warnings
-    #           -1: Coolant IN (Temp) running High
-    #           -2: Coolant IN (Temp) running Low
-    #           -4: Coolant OUT (Temp) running High
-    #           -8: Coolant OUT (Temp) running High
-    #           -16: Oil (Temp) running High
-    #           -32: Oil (Temp) running Low
-    #           -64: Helium (Temp) running High
-    #           -128: Helium (Temp) running Low
-    #           -256: Low Pressure running High
-    #           -512: Low Pressure running Low
-    #           -1024: High Pressure running High
-    #           -2048: High Pressure running Low
-    #           -4096: Delta Pressure running High
-    #           -8192: Delta Pressure running Low
-    #           -131072: Static Pressure running High
-    #           -262144: Static Pressure running Low
-    #           -524288: Cold head motor stall
     _warning_addr = 30003
 
     #: int: address of the controller's alarm/error register.
-    #       values are an OR of:
-    #           0: No errors
-    #           -1: Coolant IN (Temp) running High
-    #           -2: Coolant IN (Temp) running Low
-    #           -4: Coolant OUT (Temp) running High
-    #           -8: Coolant OUT (Temp) running High
-    #           -16: Oil (Temp) running High
-    #           -32: Oil (Temp) running Low
-    #           -64: Helium (Temp) running High
-    #           -128: Helium (Temp) running Low
-    #           -256: Low Pressure running High
-    #           -512: Low Pressure running Low
-    #           -1024: High Pressure running High
-    #           -2048: High Pressure running Low
-    #           -4096: Delta Pressure running High
-    #           -8192: Delta Pressure running Low
-    #           -16384: Motor Current Low
-    #           -32768: Three Phase Error
-    #           -65536: Power Supply Error
-    #           -131072: Static Pressure running High
-    #           -262144: Static Pressure running Low
-    #           -524288: Cold head motor stall
     _error_addr = 30005
 
     #: int: address of the controller's Coolant In Temp(erature) register
-    #       values is a 32 bit floating point, in units given by Temp Unit register
     _coolant_in_addr = 30007
 
     #: int: address of the controller's Coolant Out Temp(erature) register
-    #       values is a 32 bit floating point, in units given by Temp Unit register
     _coolant_out_addr = 30009
 
     #: int: address of the controller's Oil Temp(erature) register
-    #       values is a 32 bit floating point, in units given by Temp Unit register
     _oil_temp_addr = 30011
 
     #: int: address of the controller's Helium Temp(erature) register
-    #       values is a 32 bit floating point, in units given by Temp Unit register
     _helium_temp_addr = 30013
 
     #: int: address of the controller's Low Pressure register
-    #       values is a 32 bit floating point, in units given by Pressure Unit register
     _low_press_addr = 30015
 
     #: int: address of the controller's Low Pressure Average register
-    #       values is a 32 bit floating point, in units given by Pressure Unit register
     _low_press_avg_addr = 30017
 
     #: int: address of the controller's High Pressure register
-    #       values is a 32 bit floating point, in units given by Pressure Unit register
     _high_press_addr = 30019
 
     #: int: address of the controller's High Pressure Average register
-    #       values is a 32 bit floating point, in units given by Pressure Unit register
     _high_press_avg_addr = 30021
 
     #: int: address of the controller's Delta Pressure Average register
-    #       values is a 32 bit floating point, in units given by Pressure Unit register
     _delta_press_avg_addr = 30023
 
     #: int: address of the controller's Motor Current register
-    #       value is a 32 bit floating point, in Amps
-    #       Value is known to be garbage on CP286i - use value from inverter
     _motor_current_addr = 30025
 
     #: int: address of the controller's Hours of Operation register
-    #       value is a 32 bit floating point, in hours.
     _hours_addr = 300027
 
     #: int: address of the controller's Pressure Scale register
-    #       value is a 16 bit int
-    #       values are:
-    #           0: PSI
-    #           1: Bar
-    #           2: KPA
     _press_unit_addr = 30029
 
     #: int: address of the controller's Temperature Scale register
-    #       values are 16 bit ints:
-    #           0: Farenheit
-    #           1: Celsius
-    #           2: Kelvin
     _temp_unit_addr = 30030
 
     #: int: address of the controller's Enable/Disable register
-    #       values are 16 bit ints:
-    #           0x00FF: turn the compressor OFF
-    #           0x0001: turn the compressor ON
     _enable_addr = 40001
 
     def __init__(self, ip_address=default_IP):
@@ -223,10 +147,10 @@ class Compressor(object):
         self._errors = self.get_errors()
 
         # float: Coolant IN temperature in self._temp_units
-        self._coolant_in = self.get_coolant_in_temp()
+        self._coolant_in = self.get_coolant_in()
 
         # float: Coolant OUT temperature in self._temp_units
-        self._coolant_out = self.get_coolant_out_temp()
+        self._coolant_out = self.get_coolant_out()
 
         # float: Oil temperature in self._temp_units
         self._oil_temp = self.get_oil_temp()
@@ -271,7 +195,7 @@ class Compressor(object):
 
         # int: how long to wait before checking that compressor enable/disable
         #       command worked
-        self._enable_delay
+        self._enable_delay = 1.0
 
 
     @property
@@ -360,13 +284,30 @@ class Compressor(object):
         """float: Coolant OUT temperature in self.temp_units"""
         return self._coolant_out
 
+    def _read_float32(self, addr):
+        """Read a 32 bit float from a register on the compressor, and convert
+        the return bytes to a Python float.
+
+        Args:
+            addr (int): Address of the register to read.
+
+        Returns:
+            float: Python float read from the register."""
+        r = self._client.read_input_registers(addr, count=2)
+        if r.isError():
+            raise RuntimeError("Could not read register {}".format(addr))
+        else:
+            decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Little)
+            result = decoder.decode_32bit_float()
+
+            return result
 
     def get_state(self):
         """Read the current state of the compressor.
 
         Returns:
             int: current state of the compressor."""
-        r = self._client.read_input_registers(self._state_addr)
+        r = self._client.read_input_registers(self._operating_state_addr)
         if r.isError():
             raise RuntimeError("Could not get current state")
         else:
@@ -408,6 +349,25 @@ class Compressor(object):
             self._errors = r.registers[0]
             return r.registers[0]
 
+    def get_coolant_in(self):
+        """Read the current coolant inlet temperature.
+
+        Returns:
+            float: coolant inlet temperature in units of self.temp_units"""
+        temp = self._read_float32(self._coolant_in_addr)
+
+        self._coolant_in = temp
+        return temp
+
+    def get_coolant_out(self):
+        """Read the current coolant outlet temperature.
+
+        Returns:
+            float: coolant inlet temperature in units of self.temp_units"""
+        temp = self._read_float32(self._coolant_out_addr)
+
+        self._coolant_out = temp
+        return temp
 
     def on(self):
         """Turn the compressor on."""
@@ -433,6 +393,7 @@ class Compressor(object):
                 raise RuntimeError("Compressor did not turn off")
 
 
+# noinspection PyMissingConstructor
 class DummyCompressor(Compressor):
     """A dummy compressor that just stores information without attempting
     any communication, for testing purposes"""
