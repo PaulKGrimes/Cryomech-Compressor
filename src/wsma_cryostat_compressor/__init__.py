@@ -659,7 +659,7 @@ class Compressor(object):
         self._get_hours()
 
     def __str__(self):
-        """Print the current state of the compressor."""
+        """Print the stored state of the compressor."""
         if self.verbose:
             self.print_status()
         else:
@@ -670,8 +670,9 @@ class Compressor(object):
                               "Warnings        : {}".format(self.warnings),
                               "Errors          : {}".format(self.errors)))
 
-    def print_status(self):
-        """Print all of the current state of the compressor."""
+    @property
+    def status(self):
+        """str: All of the stored state of the compressor."""
         return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
                           "IP address         : {}".format(self.ip_address),
                           "Operating State    : {}".format(self.state_str),
@@ -690,6 +691,15 @@ class Compressor(object):
                           "Pressure Delta avg : {:.2f} {}".format(self.delta_pressure_average, self.press_unit),
                           "Motor current      : {:.2f} Amps".format(self.motor_current),
                           "Hours of Operation : {:.1f}".format(self.hours)))
+
+    def print_status(self):
+        """Print all of the stored status"""
+        print(self.status)
+
+    def get_status(self):
+        """Update the current state and print it"""
+        self.update()
+        self.print_status()
 
     def __repr__(self):
         """Print some basic info about the compressor object."""
@@ -961,10 +971,11 @@ class Compressor(object):
             raise RuntimeError("Could not command compressor to turn on")
         else:
             sleep(self._enable_delay)
-            enabled = self.get_enabled()
-            if enabled != 1:
-                error = self.get_errors()
-                raise RuntimeError("Compressor did not turn on. Compressor Error Code {}".format(error))
+            self._get_state()
+            if self._state != 2 or self._state != 3:
+                self._get_errors()
+                raise RuntimeError("Compressor is not starting. Compressor Error Code {}".format(self._error_code))
+            self.update()
 
     def off(self):
         """Turn the compressor off."""
@@ -973,6 +984,7 @@ class Compressor(object):
             raise RuntimeError("Could not command compressor to turn off")
         else:
             sleep(self._enable_delay)
-            enabled = self.get_enabled()
-            if enabled != 0:
+            self._get_state()
+            if self._state != 5 or self._state != 0:
                 raise RuntimeError("Compressor did not turn off")
+            self.update()
