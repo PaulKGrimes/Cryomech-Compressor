@@ -12,7 +12,7 @@ def _status_to_string(status_code):
     """Translate compressor status code to a human readable string.
 
     Args:
-        int: status_code: the status returned by the compressor.
+        status_code: in: the status returned by the compressor.
     Returns:
         str: status message."""
     str_return = 'Unknown State'
@@ -41,7 +41,7 @@ def _error_code_to_string(error_code):
     """Translate compressor error or warning status code to a human readable string.
 
     Args:
-        int: error_code: the error/warning code returned by the compressor.
+        error_code: int: the error/warning code returned by the compressor.
     Returns:
         str: error message."""
     str_return = '   '
@@ -152,7 +152,7 @@ def _model_code_to_string(model_code):
     """Translate model code bytes to a human readable string.
 
     Args:
-        int: model_code: the error/warning code returned by the compressor.
+        model_code: int: the error/warning code returned by the compressor.
     Returns:
         str: Model name."""
     high_byte = model_code[0]
@@ -380,19 +380,19 @@ class Compressor(object):
         self._helium_temp = self.get_helium_temp()
 
         # float: Low pressure in self._press_units
-        self._low_press = self.get_low_press()
+        self._low_press = self.get_low_pressure()
 
         # float: Low pressure average in self._press_units
-        self._low_press_avg = self.get_low_press_avg()
+        self._low_press_avg = self.get_low_pressure_average()
 
         # float: High pressure in self._press_units
-        self._high_press = self.get_high_press()
+        self._high_press = self.get_high_pressure()
 
         # float: High pressure average in self._press_units
-        self._high_press_avg = self.get_high_press_avg()
+        self._high_press_avg = self.get_high_pressure_average()
 
         # float: Delta pressure average in self._press_units
-        self._delta_press_avg = self.get_delta_press_avg()
+        self._delta_press_avg = self.get_delta_pressure_average()
 
         # float: Motor current in Amps - ! Known to be garbage on CP286i
         self._motor_current = self.get_motor_current()
@@ -405,14 +405,14 @@ class Compressor(object):
         #           0: PSI
         #           1: Bar
         #           2: KPA
-        self._press_unit = self.get_press_unit()
+        self._press_unit = self.get_pressure_scale()
 
         # int: Temperature unit
         #       values are:
         #           0: Farenheit
         #           1: Celsius
         #           2: Kelvin
-        self._temp_unit = self.get_temp_unit()
+        self._temp_unit = self.get_temperature_scale()
 
         # str: Serial Number
         self._serial = self.get_serial()
@@ -634,7 +634,7 @@ class Compressor(object):
             raise RuntimeError("Could not get current state")
         else:
             self._state = r.registers[0]
-            return self.state
+            return self.state_str
 
     def get_enabled(self):
         """Read the current Enable state of the compressor.
@@ -816,7 +816,7 @@ class Compressor(object):
         Returns:
             str: software revision"""
         s = self._read_float32(self._software_addr)
-        software = {:.3f}.format(s)
+        software = "{:.3f}".format(s)
         self._software_rev = software
         return software
 
@@ -842,17 +842,3 @@ class Compressor(object):
             enabled = self.get_enabled()
             if enabled != 0:
                 raise RuntimeError("Compressor did not turn off")
-
-
-# noinspection PyMissingConstructor
-class DummyCompressor(Compressor):
-    """A dummy compressor that just stores information without attempting
-    any communication, for testing purposes"""
-
-    def __init__(self, ip_address="0.0.0.0"):
-        """Create a DummyCompressor object for testing purposes.
-
-        Args:
-            ip_address (str): IP Address of the controller to communicate with
-        """
-        pass
