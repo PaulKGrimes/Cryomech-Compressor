@@ -37,35 +37,38 @@ def main(args=None):
     # Create the compressor object for communication with the controller
     # If address is 0.0.0.0, create a dummy compressor for testing purposes.
     if args.address=="0.0.0.0":
-        comp = wsma_cryostat_compressor.DummyCompressor()
+        print(args)
+        return None
+        # comp = wsma_cryostat_compressor.DummyCompressor()
     else:
         comp = wsma_cryostat_compressor.Compressor(ip_address=args.address)
 
-    if args.verbosity:
-        comp.verbose = True
+        if args.verbosity:
+            comp.verbose = True
 
-    if args.off:
-        print("Turning {} compressor {} at {} off".format(comp.model, comp.serial, comp.ip_address)
-        try:
-            comp.off()
-        except RuntimeError:
-            print("Could not turn compressor off")
-            print("")
-            print("Errors:")
-            print("\n".join(comp.errors.split(",")))
-        if args.verbosity:
-            print()
-            print(comp.status)
-    elif args.on:
-        try:
-            comp.on())
-        except RuntimeError:
-            print("Could not turn compressor off")
-            print("")
-            print("Errors:")
-            print("\n".join(comp.errors.split(",")))
-        if args.verbosity:
-            print()
-            print(comp.status)
-    else:
-        print(comp)
+        if args.off:
+            print("Turning {} compressor {} at {} off".format(comp.model, comp.serial, comp.ip_address))
+            try:
+                comp.off()
+            except RuntimeError:
+                print("Could not turn compressor off")
+                print("")
+                print("Errors:")
+                print("\n".join(comp.errors.split(",")))
+            if args.verbosity:
+                print()
+                print(comp.status)
+        elif args.on:
+            print("Turning {} compressor {} at {} on".format(comp.model, comp.serial, comp.ip_address))
+            try:
+                comp.on()
+            except RuntimeError:
+                print("Could not turn compressor off")
+                print("")
+                print("Errors:")
+                print("\n".join(comp.errors.split(",")))
+            if args.verbosity:
+                print()
+                print(comp.status)
+        else:
+            print(comp)
