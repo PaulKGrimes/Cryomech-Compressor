@@ -668,7 +668,7 @@ class Compressor(object):
                               "Operating State : {}".format(self.state),
                               "Enabled         : {}".format(self.enabled),
                               "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
-                              "Errors             : \n {}".format("\n".join(self.errors.split(","))),
+                              "Errors             : \n {}".format("\n".join(self.errors.split(",")))))
 
     @property
     def status(self):
@@ -721,7 +721,7 @@ class Compressor(object):
         Returns:
             str: Current state of the compressor"""
         self._get_state()
-        return self.state_str
+        return self.state
 
     def _get_enabled(self):
         """Read the current Enable state of the compressor"""
