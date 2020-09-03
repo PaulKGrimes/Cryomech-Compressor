@@ -301,6 +301,9 @@ class Compressor(object):
         #: (:obj:`ModbusTcpClient`): Client for communicating with the controller
         self._client = ModbusTcpClient(ip_address)
 
+        #: str: IP address of compressor.
+        self._ip_address = ip_address
+
         #: int: Current state of the compressor
         #       values are one of:
         #           0: Idling - ready to start
@@ -312,13 +315,13 @@ class Compressor(object):
         #           8: Helium cool down
         #           9: Power related error
         #           15: Recovered from error
-        self._state = self.get_state()
+        self._state = 0
 
         #: int: Current power state of the compressor
         #       values are one of:
         #           0: Off
         #           1: On
-        self._enabled = self.get_enabled()
+        self._enabled = 0
 
         #: int: Current warning state of the compressor
         #       values are an OR of:
@@ -340,7 +343,7 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._warning_code = self.get_warnings()
+        self._warning_code = 0.0
 
         #: int: Current Error state of the compressor
         #       values are an OR of:
@@ -365,54 +368,62 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._error_code = self.get_errors()
+        self._error_code = 0.0
 
         # float: Coolant IN temperature in self._temp_units
-        self._coolant_in = self.get_coolant_in()
+        self._coolant_in = 0.0
 
         # float: Coolant OUT temperature in self._temp_units
-        self._coolant_out = self.get_coolant_out()
+        self._coolant_out = 0.0
 
         # float: Oil temperature in self._temp_units
-        self._oil_temp = self.get_oil_temp()
+        self._oil_temp = 0.0
 
         # float: Helium temperature in self._temp_units
-        self._helium_temp = self.get_helium_temp()
+        self._helium_temp = 0.0
 
         # float: Low pressure in self._press_units
-        self._low_press = self.get_low_pressure()
+        self._low_press = 0.0
 
         # float: Low pressure average in self._press_units
-        self._low_press_avg = self.get_low_pressure_average()
+        self._low_press_avg = 0.0
 
         # float: High pressure in self._press_units
-        self._high_press = self.get_high_pressure()
+        self._high_press = 0.0
 
         # float: High pressure average in self._press_units
-        self._high_press_avg = self.get_high_pressure_average()
+        self._high_press_avg = 0.0
 
         # float: Delta pressure average in self._press_units
-        self._delta_press_avg = self.get_delta_pressure_average()
+        self._delta_press_avg = 0.0
 
         # float: Motor current in Amps - ! Known to be garbage on CP286i
-        self._motor_current = self.get_motor_current()
+        self._motor_current = 0.0
 
         # float: Hours of Operation
-        self._hours = self.get_hours()
+        self._hours = 0.0
 
+        # bool: How much info should the Compressor return (particularly in __str__)
+        self.verbose = False
+        
+        # Get the values for the above attributes.
+        self.update()
+
+        # The following values are unlikely to change during operation, and so are not set by self.update()
+        
         # int: Pressure unit
         #       values are:
         #           0: PSI
         #           1: Bar
         #           2: KPA
-        self._press_unit = self.get_pressure_scale()
+        self._press_scale = self.get_pressure_scale()
 
         # int: Temperature unit
         #       values are:
         #           0: Farenheit
         #           1: Celsius
         #           2: Kelvin
-        self._temp_unit = self.get_temperature_scale()
+        self._temp_scale = self.get_temperature_scale()
 
         # str: Serial Number
         self._serial = self.get_serial()
@@ -521,18 +532,18 @@ class Compressor(object):
     @property
     def temp_unit(self):
         str_return = 'F'
-        if 1 == self._temp_unit:
+        if 1 == self._temp_scale:
             str_return = 'C'
-        elif 2 == self._temp_unit:
+        elif 2 == self._temp_scale:
             str_return = 'K'
         return str_return
 
     @property
     def press_unit(self):
         str_return = 'PSI'
-        if 1 == self._press_unit:
+        if 1 == self._press_scale:
             str_return = 'Bar'
-        elif 2 == self._press_unit:
+        elif 2 == self._press_scale:
             str_return = 'kPa'
         return str_return
 
@@ -606,6 +617,11 @@ class Compressor(object):
         """str: Software revision of the compressor"""
         return self._software_rev
 
+    @property
+    def ip_address(self):
+        """str: IP address of the compressor"""
+        return self._ip_address
+
     def _read_float32(self, addr):
         """Read a 32 bit float from a register on the compressor, and convert
         the return bytes to a Python float.
@@ -624,127 +640,242 @@ class Compressor(object):
 
             return result
 
-    def get_state(self):
-        """Read the current state of the compressor.
+    def update(self):
+        """Read current values from all input registers."""
+        self._get_state()
+        self._get_enabled()
+        self._get_errors()
+        self._get_warnings()
+        self._get_coolant_in()
+        self._get_coolant_out()
+        self._get_oil_temp()
+        self._get_helium_temp()
+        self._get_low_pressure()
+        self._get_low_pressure_average()
+        self._get_high_pressure()
+        self._get_high_pressure_average()
+        self._get_delta_pressure_average()
+        self._get_motor_current()
+        self._get_hours()
 
-        Returns:
-            int: current state of the compressor."""
+    def __str__(self):
+        """Print the current state of the compressor."""
+        if self.verbose:
+            self.print_status()
+        else:
+            return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
+                              "IP address      : {}".format(self.ip_address),
+                              "Operating State : {}".format(self.state_str),
+                              "Enabled         : {}".format(self.enabled),
+                              "Warnings        : {}".format(self.warnings),
+                              "Errors          : {}".format(self.errors)))
+
+    def print_status(self):
+        """Print all of the current state of the compressor."""
+        return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
+                          "IP address         : {}".format(self.ip_address),
+                          "Operating State    : {}".format(self.state_str),
+                          "Enabled            : {}".format(self.enabled),
+                          "Warnings           : \n{}".format("\n".join(self.warnings.split(","))),
+                          "Errors             : \n{}".format("\n".join(self.errors.split(","))),
+                          "",
+                          "Coolant In         : {:.2f} {}".format(self.coolant_in, self.temp_unit),
+                          "Coolant Out        : {:.2f} {}".format(self.coolant_out, self.temp_unit),
+                          "Oil Temperature    : {:.2f} {}".format(self.oil_temp, self.temp_unit),
+                          "Helium Temp        : {:.2f} {}".format(self.helium_temp, self.temp_unit),
+                          "Low side pressure  : {:.2f} {}".format(self.low_pressure, self.press_unit),
+                          "Low side average   : {:.2f} {}".format(self.low_pressure_average, self.press_unit),
+                          "High side pressure : {:.2f} {}".format(self.high_pressure, self.press_unit),
+                          "High side average  : {:.2f} {}".format(self.high_pressure_average, self.press_unit),
+                          "Pressure Delta avg : {:.2f} {}".format(self.delta_pressure_average, self.press_unit),
+                          "Motor current      : {:.2f} Amps".format(self.motor_current),
+                          "Hours of Operation : {:.1f}".format(self.hours)))
+
+    def __repr__(self):
+        """Print some basic info about the compressor object."""
+        return "wsma_cryostat_compressor.Compressor connected to Cryomech {}, ser. {} at {}".format(self.model,
+                                                                                                    self.serial,
+                                                                                                    self.ip_address)
+
+    def _get_state(self):
+        """Read the current state of the compressor."""
         r = self._client.read_input_registers(self._operating_state_addr)
         if r.isError():
             raise RuntimeError("Could not get current state")
         else:
             self._state = r.registers[0]
-            return self.state_str
+            
+    def get_state(self):
+        """Read the current state of the compressor.
+        
+        Returns:
+            str: Current state of the compressor"""
+        self._get_state()
+        return self.state_str
+
+    def _get_enabled(self):
+        """Read the current Enable state of the compressor"""
+        r = self._client.read_input_registers(self._enabled_addr)
+        if r.isError():
+            raise RuntimeError("Could not get current enabled state")
+        else:
+            self._enabled = r.registers[0]
 
     def get_enabled(self):
         """Read the current Enable state of the compressor.
 
         Returns:
             int: current Enable state of the compressor."""
-        r = self._client.read_input_registers(self._enabled_addr)
-        if r.isError():
-            raise RuntimeError("Could not get current enabled state")
-        else:
-            return r.registers[0]
+        self._get_enabled()
+        return self.enabled
+
+    def _get_warnings(self):
+        """Read the current warnings from the compressor."""
+        r = self._read_float32(self._warning_addr)
+        self._warning_code = r
 
     def get_warnings(self):
         """Read the current warnings from the compressor.
 
         Returns:
             int: warning state of the compressor."""
-        r = self._read_float32(self._warning_addr)
-        self._warning_code = r
-        return r
+        self._get_warnings()
+        return self.warnings
+
+    def _get_errors(self):
+        """Read the current errors from the compressor."""
+        r = self._read_float32(self._error_addr)
+        self._error_code = r
 
     def get_errors(self):
         """Read the current errors from the compressor.
 
         Returns:
             int: error state of the compressor."""
-        r = self._read_float32(self._error_addr)
-        self._error_code = r
-        return r
+        self._get_errors()
+        return self.errors
+
+    def _get_coolant_in(self):
+        """Read the current coolant inlet temperature."""
+        temp = self._read_float32(self._coolant_in_addr)
+        self._coolant_in = temp
 
     def get_coolant_in(self):
         """Read the current coolant inlet temperature.
 
         Returns:
             float: coolant inlet temperature in units of self.temp_units"""
-        temp = self._read_float32(self._coolant_in_addr)
-        self._coolant_in = temp
-        return temp
+        self._get_coolant_in()
+        return self.coolant_in
+    
+    def _get_coolant_out(self):
+        """Read the current coolant outlet temperature"""
+        temp = self._read_float32(self._coolant_out_addr)
+        self._coolant_out = temp
 
     def get_coolant_out(self):
         """Read the current coolant outlet temperature.
 
         Returns:
             float: coolant inlet temperature in units of self.temp_units"""
-        temp = self._read_float32(self._coolant_out_addr)
-        self._coolant_out = temp
-        return temp
+        self._get_coolant_out()
+        return self.coolant_out
 
+    def _get_helium_temp(self):
+        """Read the current helium temperature."""
+        temp = self._read_float32(self._helium_temp_addr)
+        self._helium_temp = temp
+    
     def get_helium_temp(self):
         """Read the current helium temperature.
 
         Returns:
             float: helium temperature in units of self.temp_units"""
-        temp = self._read_float32(self._helium_temp_addr)
-        self._helium_temp = temp
-        return temp
+        self._get_helium_temp()
+        return self.helium_temp
 
+    def _get_oil_temp(self):
+        """Read the current helium temperature."""
+        temp = self._read_float32(self._oil_temp_addr)
+        self._oil_temp = temp
+    
     def get_oil_temp(self):
         """Read the current helium temperature.
 
         Returns:
             float: helium temperature in units of self.temp_units"""
-        temp = self._read_float32(self._oil_temp_addr)
-        self._oil_temp = temp
-        return temp
+        self._get_oil_temp()
+        return self.oil_temp
 
+    def _get_low_pressure(self):
+        """Read the current low side pressure."""
+        temp = self._read_float32(self._low_press_addr)
+        self._low_press = temp
+    
     def get_low_pressure(self):
         """Read the current low side pressure.
 
         Returns:
             float: low side pressure in units of self.press_units"""
-        temp = self._read_float32(self._low_press_addr)
-        self._low_press = temp
-        return temp
+        self._get_low_pressure()
+        return self.low_pressure
+    
+    def _get_low_pressure_average(self):
+        """Read the current average low side pressure."""
+        temp = self._read_float32(self._low_press_avg_addr)
+        self._low_press_avg = temp
 
     def get_low_pressure_average(self):
         """Read the current average low side pressure.
 
         Returns:
             float: average low side pressure in units of self.press_units"""
-        temp = self._read_float32(self._low_press_avg_addr)
-        self._low_press_avg = temp
-        return temp
+        self._get_low_pressure_average()
+        return self.low_pressure_average
+
+    def _get_high_pressure(self):
+        """Read the current high side pressure."""
+        temp = self._read_float32(self._high_press_addr)
+        self._high_press = temp
 
     def get_high_pressure(self):
         """Read the current high side pressure.
 
         Returns:
             float: high side pressure in units of self.press_units"""
-        temp = self._read_float32(self._high_press_addr)
-        self._high_press = temp
-        return temp
+        self._get_high_pressure()
+        return self.high_pressure
+
+    def _get_high_pressure_average(self):
+        """Read the current average high side pressure."""
+        temp = self._read_float32(self._high_press_avg_addr)
+        self._high_press_average = temp
 
     def get_high_pressure_average(self):
         """Read the current average high side pressure.
 
         Returns:
             float: average high side pressure in units of self.press_units"""
-        temp = self._read_float32(self._high_press_avg_addr)
-        self._high_press_avg = temp
-        return temp
-    
+        self._get_high_pressure_average()
+        return self.high_pressure_average
+
+    def _get_delta_pressure_average(self):
+        """Read the current average pressure delta."""
+        temp = self._read_float32(self._delta_press_avg_addr)
+        self._delta_press_avg = temp
+
     def get_delta_pressure_average(self):
         """Read the current average pressure delta.
 
         Returns:
             float: average pressure delta in units of self.press_units"""
-        temp = self._read_float32(self._delta_press_avg_addr)
-        self._delta_press_avg = temp
-        return temp
+        self._get_delta_pressure_average()
+        return self.delta_pressure_average
+
+    def _get_motor_current(self):
+        """Read the motor current."""
+        temp = self._read_float32(self._motor_current_addr)
+        self._motor_current = temp
 
     def get_motor_current(self):
         """Read the motor current.
@@ -754,42 +885,45 @@ class Compressor(object):
 
         Returns:
             float: motor current in Amps"""
-        temp = self._read_float32(self._motor_current_addr)
-        self._motor_current = temp
-        return temp
+        self._get_motor_current()
+        return self.motor_current
+
+    def _get_hours(self):
+        """Read the current hours of operation."""
+        temp = self._read_float32(self._hours_addr)
+        self._hours = temp
 
     def get_hours(self):
         """Read the current hours of operation.
 
         Returns:
             float: hours of operation"""
-        temp = self._read_float32(self._hours_addr)
-        self._hours = temp
-        return temp
+        self._get_hours()
+        return self.hours
 
     def get_pressure_scale(self):
         """Read the pressure scale.
 
         Returns:
-            str: the pressure scale unit."""
+            int: the pressure scale code."""
         r = self._client.read_input_registers(self._press_unit_addr)
         if r.isError():
             raise RuntimeError("Could not get pressure units")
         else:
-            self._press_unit = r.registers[0]
-            return self.press_unit
+            self._press_scale = r.registers[0]
+            return self._press_scale
 
     def get_temperature_scale(self):
         """Read the temperature scale.
 
         Returns:
-            str: the temperature scale unit."""
+            int: the temperature scale code."""
         r = self._client.read_input_registers(self._temp_unit_addr)
         if r.isError():
             raise RuntimeError("Could not get temperature units")
         else:
-            self._temp_unit = r.registers[0]
-            return self.temp_unit
+            self._temp_scale = r.registers[0]
+            return self._temp_scale
 
     def get_serial(self):
         """Read the model name from the compressor
@@ -797,8 +931,8 @@ class Compressor(object):
         Returns:
             str: model name from the compressor"""
         r = self._client.read_input_registers(self._serial_addr)
-        self._model = r.registers[0]
-        return self._model
+        self._serial = r.registers[0]
+        return self.serial
 
     def get_model(self):
         """Read the model name from the compressor
@@ -808,7 +942,7 @@ class Compressor(object):
         r = self._client.read_input_registers(self._model_addr)
         model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
         self._model = model
-        return model
+        return self.model
 
     def get_software_rev(self):
         """Read the software revision from the compressor
@@ -818,7 +952,7 @@ class Compressor(object):
         s = self._read_float32(self._software_addr)
         software = "{:.3f}".format(s)
         self._software_rev = software
-        return software
+        return self.software_rev
 
     def on(self):
         """Turn the compressor on."""
