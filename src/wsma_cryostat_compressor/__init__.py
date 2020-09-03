@@ -667,8 +667,8 @@ class Compressor(object):
                               "IP address      : {}".format(self.ip_address),
                               "Operating State : {}".format(self.state),
                               "Enabled         : {}".format(self.enabled),
-                              "Warnings        : {}".format(self.warnings),
-                              "Errors          : {}".format(self.errors)))
+                              "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
+                              "Errors             : \n {}".format("\n".join(self.errors.split(","))),
 
     @property
     def status(self):

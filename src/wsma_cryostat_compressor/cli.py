@@ -53,8 +53,9 @@ def main(args=None):
             except RuntimeError:
                 print("Could not turn compressor off")
                 print("")
+                print("State: {}".format(comp.state))
                 print("Errors:")
-                print("\n".join(comp.errors.split(",")))
+                print(" \n".join(comp.errors.split(",")))
             if args.verbosity:
                 print()
                 print(comp.status)
@@ -63,10 +64,11 @@ def main(args=None):
             try:
                 comp.on()
             except RuntimeError:
-                print("Could not turn compressor off")
+                print("Could not turn compressor on")
                 print("")
+                print("State: {}".format(comp.state))
                 print("Errors:")
-                print("\n".join(comp.errors.split(",")))
+                print(" \n".join(comp.errors.split(",")))
             if args.verbosity:
                 print()
                 print(comp.status)
