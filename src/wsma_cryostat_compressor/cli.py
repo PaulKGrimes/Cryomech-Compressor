@@ -51,8 +51,11 @@ def main(args=None):
                 print("{} compressor {} at {} is already off".format(comp.model, comp.serial, comp.ip_address))
             elif comp.state_code == 5:
                 print("{} compressor {} at {} is already stopping".format(comp.model, comp.serial, comp.ip_address))
+            elif comp.state_code == 2:
+                print("{} compressor {} at {} is still starting, please try again later".format(comp.model,
+                                                                                                comp.serial,
+                                                                                                comp.ip_address))
             else:
-                print("Turning {} compressor {} at {} off".format(comp.model, comp.serial, comp.ip_address))
                 try:
                     comp.off()
                 except RuntimeError:
@@ -64,6 +67,7 @@ def main(args=None):
             if args.verbosity:
                 print()
                 print(comp.status)
+
         elif args.on:
             if comp.state_code == 2 or comp.state_code == 3:
                 print("{} compressor {} at {} is already on".format(comp.model, comp.serial, comp.ip_address))
@@ -83,5 +87,6 @@ def main(args=None):
             if args.verbosity:
                 print()
                 print(comp.status)
+
         else:
             print(comp)
