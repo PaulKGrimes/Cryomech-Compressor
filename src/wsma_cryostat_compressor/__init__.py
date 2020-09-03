@@ -972,6 +972,9 @@ class Compressor(object):
         else:
             sleep(self._enable_delay)
             self._get_state()
+            # give it some more time if needed
+            if self._state != 2 and self._state != 3:
+                sleep(self._enable_delay)
             if self._state != 2 and self._state != 3:
                 self._get_errors()
                 raise RuntimeError("Compressor is not starting. Compressor Error Code {}".format(self._error_code))
@@ -985,6 +988,9 @@ class Compressor(object):
         else:
             sleep(self._enable_delay)
             self._get_state()
+            # Give it some more time if needed
+            if self._state != 5 and self._state != 0:
+                sleep(self._enable_delay)
             if self._state != 5 and self._state != 0:
                 raise RuntimeError("Compressor did not turn off")
             self.update()
