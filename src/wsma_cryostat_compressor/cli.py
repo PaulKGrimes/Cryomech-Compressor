@@ -17,31 +17,55 @@ Why does this file exist, and why not put this in __main__?
 import argparse
 import wsma_cryostat_compressor
 
-default_ip = '192.168.42.100'
+default_ip = '192.168.42.128'
 
-parser = argparse.ArgumentParser(description="Get current state variables from the compressor's "
+parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "
                                              "digital control panel.")
 
 parser.add_argument("-v", "--verbosity", action="store_true",
                     help="Display detailed output from compressor")
 parser.add_argument("-a", "--address", default=default_ip,
                     help="The IP address of the compressor")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("--on", action="store_true", help="Turn the compressor on")
+group.add_argument("--off", action="store_true", help="Turn the compressor off")
 
 
 def main(args=None):
     args = parser.parse_args(args=args)
 
-    # Create the selector wheel object for communication with the controller
-    # If address is 0.0.0.0, create a dummy selector for testing purposes.
+    # Create the compressor object for communication with the controller
+    # If address is 0.0.0.0, create a dummy compressor for testing purposes.
     if args.address=="0.0.0.0":
         comp = wsma_cryostat_compressor.DummyCompressor()
     else:
         comp = wsma_cryostat_compressor.Compressor(ip_address=args.address)
 
-    print("Compressor state    : {}".format(comp.state))
-    print("Compressor enabled  : {}".format(comp.enabled))
-    print("Compressor warnings : {}".format(comp.warnings))
-    print("Compressor errors   : {}".format(comp.errors))
     if args.verbosity:
-        print("Coolant In          : {} {}".format(comp.coolant_in, comp.temp_unit))
-        print("Coolant Out         : {} {}".format(comp.coolant_out, comp.temp_unit))
+        comp.verbose = True
+
+    if args.off:
+        print("Turning {} compressor {} at {} off".format(comp.model, comp.serial, comp.ip_address)
+        try:
+            comp.off()
+        except RuntimeError:
+            print("Could not turn compressor off")
+            print("")
+            print("Errors:")
+            print("\n".join(comp.errors.split(",")))
+        if args.verbosity:
+            print()
+            print(comp.status)
+    elif args.on:
+        try:
+            comp.on())
+        except RuntimeError:
+            print("Could not turn compressor off")
+            print("")
+            print("Errors:")
+            print("\n".join(comp.errors.split(",")))
+        if args.verbosity:
+            print()
+            print(comp.status)
+    else:
+        print(comp)
