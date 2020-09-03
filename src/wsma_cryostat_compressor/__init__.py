@@ -5,7 +5,7 @@ from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
-default_IP = "192.168.0.105"
+default_IP = "192.168.42.128"
 
 
 def _status_to_string(status_code):
