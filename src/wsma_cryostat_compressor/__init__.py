@@ -667,8 +667,8 @@ class Compressor(object):
                               "IP address      : {}".format(self.ip_address),
                               "Operating State : {}".format(self.state),
                               "Enabled         : {}".format(self.enabled),
-                              "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
-                              "Errors             : \n {}".format("\n".join(self.errors.split(",")))))
+                              "Warnings : \n {}".format("\n".join(self.warnings.split(","))),
+                              "Errors   : \n {}".format("\n".join(self.errors.split(",")))))
 
     @property
     def status(self):
@@ -677,8 +677,8 @@ class Compressor(object):
                           "IP address         : {}".format(self.ip_address),
                           "Operating State    : {}".format(self.state),
                           "Enabled            : {}".format(self.enabled),
-                          "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
-                          "Errors             : \n {}".format("\n".join(self.errors.split(","))),
+                          "Warnings : \n {}".format("\n".join(self.warnings.split(","))),
+                          "Errors   : \n {}".format("\n".join(self.errors.split(","))),
                           "",
                           "Coolant In         : {:.2f} {}".format(self.coolant_in, self.temp_unit),
                           "Coolant Out        : {:.2f} {}".format(self.coolant_out, self.temp_unit),
