@@ -57,6 +57,7 @@ def main(args=None):
                                                                                                 comp.ip_address))
             else:
                 try:
+                    print("Turning {} compressor {} at {} off".format(comp.model, comp.serial, comp.ip_address))
                     comp.off()
                 except RuntimeError:
                     print("Could not turn compressor off")
