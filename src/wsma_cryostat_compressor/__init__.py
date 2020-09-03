@@ -661,7 +661,7 @@ class Compressor(object):
     def __str__(self):
         """Print the stored state of the compressor."""
         if self.verbose:
-            self.print_status()
+            return self.status
         else:
             return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
                               "IP address      : {}".format(self.ip_address),
@@ -677,8 +677,8 @@ class Compressor(object):
                           "IP address         : {}".format(self.ip_address),
                           "Operating State    : {}".format(self.state),
                           "Enabled            : {}".format(self.enabled),
-                          "Warnings           : \n{}".format("\n".join(self.warnings.split(","))),
-                          "Errors             : \n{}".format("\n".join(self.errors.split(","))),
+                          "Warnings           : \n {}".format("\n".join(self.warnings.split(","))),
+                          "Errors             : \n {}".format("\n".join(self.errors.split(","))),
                           "",
                           "Coolant In         : {:.2f} {}".format(self.coolant_in, self.temp_unit),
                           "Coolant Out        : {:.2f} {}".format(self.coolant_out, self.temp_unit),
