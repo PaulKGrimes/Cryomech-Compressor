@@ -454,7 +454,7 @@ class Compressor(object):
         return self._state
 
     @property
-    def state_str(self):
+    def state(self):
         """str: Verbose description of state of the compressor"""
         return _status_to_string(self._state)
 
@@ -665,7 +665,7 @@ class Compressor(object):
         else:
             return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
                               "IP address      : {}".format(self.ip_address),
-                              "Operating State : {}".format(self.state_str),
+                              "Operating State : {}".format(self.state),
                               "Enabled         : {}".format(self.enabled),
                               "Warnings        : {}".format(self.warnings),
                               "Errors          : {}".format(self.errors)))
@@ -675,7 +675,7 @@ class Compressor(object):
         """str: All of the stored state of the compressor."""
         return "\n".join(("Cryomech {}. ser. {}".format(self.model, self.serial),
                           "IP address         : {}".format(self.ip_address),
-                          "Operating State    : {}".format(self.state_str),
+                          "Operating State    : {}".format(self.state),
                           "Enabled            : {}".format(self.enabled),
                           "Warnings           : \n{}".format("\n".join(self.warnings.split(","))),
                           "Errors             : \n{}".format("\n".join(self.errors.split(","))),
@@ -972,7 +972,7 @@ class Compressor(object):
         else:
             sleep(self._enable_delay)
             self._get_state()
-            if self._state != 2 or self._state != 3:
+            if self._state != 2 and self._state != 3:
                 self._get_errors()
                 raise RuntimeError("Compressor is not starting. Compressor Error Code {}".format(self._error_code))
             self.update()
@@ -985,6 +985,6 @@ class Compressor(object):
         else:
             sleep(self._enable_delay)
             self._get_state()
-            if self._state != 5 or self._state != 0:
+            if self._state != 5 and self._state != 0:
                 raise RuntimeError("Compressor did not turn off")
             self.update()
