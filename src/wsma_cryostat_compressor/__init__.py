@@ -8,6 +8,218 @@ from pymodbus.constants import Endian
 default_IP = "192.168.0.105"
 
 
+def _status_to_string(status_code):
+    """Translate compressor status code to a human readable string.
+
+    Args:
+        int: status_code: the status returned by the compressor.
+    Returns:
+        str: status message."""
+    str_return = 'Unknown State'
+    if 0 == status_code:
+        str_return = 'Ready to start'
+    elif 2 == status_code:
+        str_return = 'Starting'
+    elif 3 == status_code:
+        str_return = 'Running'
+    elif 5 == status_code:
+        str_return = 'Stopping'
+    elif 6 == status_code:
+        str_return = 'Error Lockout'
+    elif 7 == status_code:
+        str_return = 'Error'
+    elif 8 == status_code:
+        str_return = 'Helium Overtemp: waiting to cool down'
+    elif 9 == status_code:
+        str_return = 'Power Related Error'
+    elif 15 == status_code:
+        str_return = 'Recovered From Error'
+    return str_return
+
+
+def _error_code_to_string(error_code):
+    """Translate compressor error or warning status code to a human readable string.
+
+    Args:
+        int: error_code: the error/warning code returned by the compressor.
+    Returns:
+        str: error message."""
+    str_return = '   '
+    worker = error_code
+    if -1073741824 >= worker:
+        str_return += "Inverter Comm Loss, "
+        worker -= -1073741824
+    if -536870912 >= worker:
+        str_return += "Driver Comm Loss, "
+        worker -= -536870912
+    if -268435456 >= worker:
+        str_return += "Inverter Error, "
+        worker -= -268435456
+    if -134217728 >= worker:
+        str_return += "Motor Current High, "
+        worker -= -134217728
+    if -67108864 >= worker:
+        str_return += "Motor Current Sensor, "
+        worker -= -67108864
+    if -33554432 >= worker:
+        str_return += "Low Pressure Sensor, "
+        worker -= -33554432
+    if -16777216 >= worker:
+        str_return += "High Pressure Sensor, "
+        worker -= -16777216
+    if -8388608 >= worker:
+        str_return += "Oil Sensor, "
+        worker -= -8388608
+    if -4194304 >= worker:
+        str_return += "Helium Sensor, "
+        worker -= -4194304
+    if -2097152 >= worker:
+        str_return += "Coolant Out Sensor, "
+        worker -= -2097152
+    if -1048576 >= worker:
+        str_return += "Coolant In Sensor, "
+        worker -= -1048576
+    if -524288 >= worker:
+        str_return += "Motor Stall, "
+        worker -= -524288
+    if -262144 >= worker:
+        str_return += "Static Pressure Low, "
+        worker -= -262144
+    if -131072 >= worker:
+        str_return += "Static Pressure High, "
+        worker -= -131072
+    if -65536 >= worker:
+        str_return += "Power Supply Error, "
+        worker -= -65536
+    if -32768 >= worker:
+        str_return += "Three Phase Error, "
+        worker -= -32768
+    if -16384 >= worker:
+        str_return += "Motor Current Low, "
+        worker -= -16384
+    if -8192 >= worker:
+        str_return += "Delta Pressure Low, "
+        worker -= -8192
+    if -4096 >= worker:
+        str_return += "Delta Pressure High, "
+        worker -= -4096
+    if -2048 >= worker:
+        str_return += "High Pressure Low, "
+        worker -= -2048
+    if -1024 >= worker:
+        str_return += "High Pressure High, "
+        worker -= -1024
+    if -512 >= worker:
+        str_return += "Low Pressure Low, "
+        worker -= -512
+    if -256 >= worker:
+        str_return += "Low Pressure High, "
+        worker -= -256
+    if -128 >= worker:
+        str_return += "Helium Low, "
+        worker -= -128
+    if -64 >= worker:
+        str_return += "Helium High, "
+        worker -= -64
+    if -32 >= worker:
+        str_return += "Oil Low, "
+        worker -= -32
+    if -16 >= worker:
+        str_return += "Oil High, "
+        worker -= -16
+    if -8 >= worker:
+        str_return += "Coolant Out Low, "
+        worker -= -8
+    if -4 >= worker:
+        str_return += "Coolant Out High, "
+        worker -= -4
+    if -2 >= worker:
+        str_return += "Coolant In Low, "
+        worker -= -2
+    if -1 >= worker:
+        str_return += "Coolant In High, "
+        worker -= -1
+    # remove the final space & Comma if we have a message
+    if 0 < len(str_return.strip()):
+        str_return = str_return.strip()
+        str_return = str_return[0:len(str_return) - 1]
+    else:
+        str_return = 'None'
+    return str_return
+
+
+def _model_code_to_string(model_code):
+    """Translate model code bytes to a human readable string.
+
+    Args:
+        int: model_code: the error/warning code returned by the compressor.
+    Returns:
+        str: Model name."""
+    high_byte = model_code[0]
+    low_byte = model_code[1]
+    str_return = 'CPA'
+    if 1 == high_byte:
+        str_return = str_return + '08'
+    elif 2 == high_byte:
+        str_return = str_return + '09'
+    elif 3 == high_byte:
+        str_return = str_return + '10'
+    elif 4 == high_byte:
+        str_return = str_return + '11'
+    elif 5 == high_byte:
+        str_return = str_return + '28'
+
+    if 1 == low_byte:
+        str_return = str_return + 'A1'
+    elif 2 == low_byte:
+        str_return = str_return + '01'
+    elif 3 == low_byte:
+        str_return = str_return + '02'
+    elif 4 == low_byte:
+        str_return = str_return + '03'
+    elif 5 == low_byte:
+        str_return = str_return + 'H3'
+    elif 6 == low_byte:
+        str_return = str_return + 'I3'
+    elif 7 == low_byte:
+        str_return = str_return + '04'
+    elif 8 == low_byte:
+        str_return = str_return + 'H4'
+    elif 9 == low_byte:
+        str_return = str_return + '05'
+    elif 10 == low_byte:
+        str_return = str_return + 'H5'
+    elif 11 == low_byte:
+        str_return = str_return + 'I6'
+    elif 12 == low_byte:
+        str_return = str_return + '06'
+    elif 13 == low_byte:
+        str_return = str_return + '07'
+    elif 14 == low_byte:
+        str_return = str_return + 'H7'
+    elif 15 == low_byte:
+        str_return = str_return + 'I7'
+    elif 16 == low_byte:
+        str_return = str_return + '08'
+    elif 17 == low_byte:
+        str_return = str_return + '09'
+    elif 18 == low_byte:
+        str_return = str_return + '9C'
+    elif 19 == low_byte:
+        str_return = str_return + '10'
+    elif 20 == low_byte:
+        str_return = str_return + '1I'
+    elif 21 == low_byte:
+        str_return = str_return + '11'
+    elif 22 == low_byte:
+        str_return = str_return + '12'
+    elif 23 == low_byte:
+        str_return = str_return + '13'
+    elif 24 == low_byte:
+        str_return = str_return + '14'
+    return str_return
+
+
 class Compressor(object):
     """Class for communicating with the wSMA Compressor controller.
 
@@ -15,58 +227,67 @@ class Compressor(object):
     communicates with the Compressor Digital Panel over TCP/IP.
     """
     #: int: address of the controller's operating state register.
-    _operating_state_addr = 30001
+    _operating_state_addr = 1
 
     #: int: address of the controller's energized state register.
-    _enabled_addr = 30002
+    _enabled_addr = 2
 
     #: int: address of the controller's warning register.
-    _warning_addr = 30003
+    _warning_addr = 3
 
     #: int: address of the controller's alarm/error register.
-    _error_addr = 30005
+    _error_addr = 5
 
     #: int: address of the controller's Coolant In Temp(erature) register
-    _coolant_in_addr = 30007
+    _coolant_in_addr = 7
 
     #: int: address of the controller's Coolant Out Temp(erature) register
-    _coolant_out_addr = 30009
+    _coolant_out_addr = 9
 
     #: int: address of the controller's Oil Temp(erature) register
-    _oil_temp_addr = 30011
+    _oil_temp_addr = 11
 
     #: int: address of the controller's Helium Temp(erature) register
-    _helium_temp_addr = 30013
+    _helium_temp_addr = 13
 
     #: int: address of the controller's Low Pressure register
-    _low_press_addr = 30015
+    _low_press_addr = 15
 
     #: int: address of the controller's Low Pressure Average register
-    _low_press_avg_addr = 30017
+    _low_press_avg_addr = 17
 
     #: int: address of the controller's High Pressure register
-    _high_press_addr = 30019
+    _high_press_addr = 19
 
     #: int: address of the controller's High Pressure Average register
-    _high_press_avg_addr = 30021
+    _high_press_avg_addr = 21
 
     #: int: address of the controller's Delta Pressure Average register
-    _delta_press_avg_addr = 30023
+    _delta_press_avg_addr = 23
 
     #: int: address of the controller's Motor Current register
-    _motor_current_addr = 30025
+    _motor_current_addr = 25
 
     #: int: address of the controller's Hours of Operation register
-    _hours_addr = 300027
+    _hours_addr = 27
 
     #: int: address of the controller's Pressure Scale register
-    _press_unit_addr = 30029
+    _press_unit_addr = 29
 
     #: int: address of the controller's Temperature Scale register
-    _temp_unit_addr = 30030
+    _temp_unit_addr = 30
 
-    #: int: address of the controller's Enable/Disable register
-    _enable_addr = 40001
+    #: int: address of the controller's Serial number register
+    _serial_addr = 31
+
+    #: int: address of the controller's Model number register
+    _model_addr = 32
+
+    #: int: address of the controller's Software rev register
+    _software_addr = 33
+
+    #: int: address of the controller's Enable/Disable holding register
+    _enable_addr = 1
 
     def __init__(self, ip_address=default_IP):
         """Create a Compressor object for communication with one Compressor Digital Panel controller.
@@ -119,7 +340,7 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._warnings = self.get_warnings()
+        self._warning_code = self.get_warnings()
 
         #: int: Current Error state of the compressor
         #       values are an OR of:
@@ -144,7 +365,7 @@ class Compressor(object):
         #           -131072: Static Pressure running High
         #           -262144: Static Pressure running Low
         #           -524288: Cold head motor stall
-        self._errors = self.get_errors()
+        self._error_code = self.get_errors()
 
         # float: Coolant IN temperature in self._temp_units
         self._coolant_in = self.get_coolant_in()
@@ -193,13 +414,21 @@ class Compressor(object):
         #           2: Kelvin
         self._temp_unit = self.get_temp_unit()
 
+        # str: Serial Number
+        self._serial = self.get_serial()
+
+        # str: Model number
+        self._model = self.get_model()
+
+        # str: Software rev
+        self._software_rev = self.get_software_rev()
+
         # int: how long to wait before checking that compressor enable/disable
         #       command worked
         self._enable_delay = 1.0
 
-
     @property
-    def state(self):
+    def state_code(self):
         """int: State of the compressor.
             values are one of:
                     0: Idling - ready to start
@@ -214,6 +443,11 @@ class Compressor(object):
         return self._state
 
     @property
+    def state_str(self):
+        """str: Verbose description of state of the compressor"""
+        return _status_to_string(self._state)
+
+    @property
     def enabled(self):
         """int: Enable state of the compressor.
             values are one of:
@@ -222,9 +456,9 @@ class Compressor(object):
         return self._enabled
 
     @property
-    def warnings(self):
+    def warning_code(self):
         """int: Warning state of the compressor.
-            values are an OR of:
+            value is an OR of:
                 0: No warnings
                 -1: Coolant IN (Temp) running High
                 -2: Coolant IN (Temp) running Low
@@ -244,12 +478,17 @@ class Compressor(object):
                 -262144: Static Pressure running Low
                 -524288: Cold head motor stall
         """
-        return self._warnings
+        return self._warning_code
 
     @property
-    def errors(self):
+    def warnings(self):
+        """str: String containing all current warnings as comma separated list."""
+        return _error_code_to_string(self._warning_code)
+
+    @property
+    def error_code(self):
         """int: Warning state of the compressor.
-            values are an OR of:
+            values is an OR of:
                 0: No errors
                 -1: Coolant IN (Temp) running High
                 -2: Coolant IN (Temp) running Low
@@ -272,7 +511,30 @@ class Compressor(object):
                 -262144: Static Pressure running Low
                 -524288: Cold head motor stall
         """
-        return self._errors
+        return self._error_code
+
+    @property
+    def errors(self):
+        """str: Verbose error messages as comma separated list."""
+        return _error_code_to_string(self._error_code)
+
+    @property
+    def temp_unit(self):
+        str_return = 'F'
+        if 1 == self._temp_unit:
+            str_return = 'C'
+        elif 2 == self._temp_unit:
+            str_return = 'K'
+        return str_return
+
+    @property
+    def press_unit(self):
+        str_return = 'PSI'
+        if 1 == self._press_unit:
+            str_return = 'Bar'
+        elif 2 == self._press_unit:
+            str_return = 'kPa'
+        return str_return
 
     @property
     def coolant_in(self):
@@ -283,6 +545,66 @@ class Compressor(object):
     def coolant_out(self):
         """float: Coolant OUT temperature in self.temp_units"""
         return self._coolant_out
+    
+    @property
+    def oil_temp(self):
+        """float: Oil temperature in self.temp_units"""
+        return self._oil_temp
+    
+    @property
+    def helium_temp(self):
+        """float: Helium temperature in self.temp_units"""
+        return self._helium_temp
+    
+    @property
+    def low_pressure(self):
+        """float: Low side pressure in self.press_units"""
+        return self._low_press
+
+    @property
+    def low_pressure_average(self):
+        """float: Average low side pressure in self.press_units"""
+        return self._low_press_avg
+
+    @property
+    def high_pressure(self):
+        """float: High side pressure in self.press_units"""
+        return self._high_press
+
+    @property
+    def high_pressure_average(self):
+        """float: Average high side pressure in self.press_units"""
+        return self._high_press_avg
+
+    @property
+    def delta_pressure_average(self):
+        """float: Average pressure delta in self.press_units"""
+        return self._delta_press_avg
+
+    @property
+    def motor_current(self):
+        """float: Motor current in Amps"""
+        return self._motor_current
+
+    @property
+    def hours(self):
+        """float: Hours of operation"""
+        return self._hours
+
+    @property
+    def serial(self):
+        """str: Serial number of the compressor"""
+        return self._serial
+
+    @property
+    def model(self):
+        """str: Model name of the compressor"""
+        return self._model
+
+    @property
+    def software_rev(self):
+        """str: Software revision of the compressor"""
+        return self._software_rev
 
     def _read_float32(self, addr):
         """Read a 32 bit float from a register on the compressor, and convert
@@ -321,7 +643,7 @@ class Compressor(object):
             int: current Enable state of the compressor."""
         r = self._client.read_input_registers(self._enabled_addr)
         if r.isError():
-            raise RuntimeError("Could not get current state")
+            raise RuntimeError("Could not get current enabled state")
         else:
             return r.registers[0]
 
@@ -330,24 +652,18 @@ class Compressor(object):
 
         Returns:
             int: warning state of the compressor."""
-        r = self._client.read_input_registers(self._warning_addr)
-        if r.isError():
-            raise RuntimeError("Could not get warnings.")
-        else:
-            self._warnings = r.registers[0]
-            return r.registers[0]
+        r = self._read_float32(self._warning_addr)
+        self._warning_code = r
+        return r
 
     def get_errors(self):
         """Read the current errors from the compressor.
 
         Returns:
             int: error state of the compressor."""
-        r = self._client.read_input_registers(self._error_addr)
-        if r.isError():
-            raise RuntimeError("Could not get Errors.")
-        else:
-            self._errors = r.registers[0]
-            return r.registers[0]
+        r = self._read_float32(self._error_addr)
+        self._error_code = r
+        return r
 
     def get_coolant_in(self):
         """Read the current coolant inlet temperature.
@@ -355,7 +671,6 @@ class Compressor(object):
         Returns:
             float: coolant inlet temperature in units of self.temp_units"""
         temp = self._read_float32(self._coolant_in_addr)
-
         self._coolant_in = temp
         return temp
 
@@ -365,9 +680,145 @@ class Compressor(object):
         Returns:
             float: coolant inlet temperature in units of self.temp_units"""
         temp = self._read_float32(self._coolant_out_addr)
-
         self._coolant_out = temp
         return temp
+
+    def get_helium_temp(self):
+        """Read the current helium temperature.
+
+        Returns:
+            float: helium temperature in units of self.temp_units"""
+        temp = self._read_float32(self._helium_temp_addr)
+        self._helium_temp = temp
+        return temp
+
+    def get_oil_temp(self):
+        """Read the current helium temperature.
+
+        Returns:
+            float: helium temperature in units of self.temp_units"""
+        temp = self._read_float32(self._oil_temp_addr)
+        self._oil_temp = temp
+        return temp
+
+    def get_low_pressure(self):
+        """Read the current low side pressure.
+
+        Returns:
+            float: low side pressure in units of self.press_units"""
+        temp = self._read_float32(self._low_press_addr)
+        self._low_press = temp
+        return temp
+
+    def get_low_pressure_average(self):
+        """Read the current average low side pressure.
+
+        Returns:
+            float: average low side pressure in units of self.press_units"""
+        temp = self._read_float32(self._low_press_avg_addr)
+        self._low_press_avg = temp
+        return temp
+
+    def get_high_pressure(self):
+        """Read the current high side pressure.
+
+        Returns:
+            float: high side pressure in units of self.press_units"""
+        temp = self._read_float32(self._high_press_addr)
+        self._high_press = temp
+        return temp
+
+    def get_high_pressure_average(self):
+        """Read the current average high side pressure.
+
+        Returns:
+            float: average high side pressure in units of self.press_units"""
+        temp = self._read_float32(self._high_press_avg_addr)
+        self._high_press_avg = temp
+        return temp
+    
+    def get_delta_pressure_average(self):
+        """Read the current average pressure delta.
+
+        Returns:
+            float: average pressure delta in units of self.press_units"""
+        temp = self._read_float32(self._delta_press_avg_addr)
+        self._delta_press_avg = temp
+        return temp
+
+    def get_motor_current(self):
+        """Read the motor current.
+
+        ! This number is known to be garbage on the inverter compressors !
+        Use the RS485 bus on the inverter unit to read the current/voltage/power consumption
+
+        Returns:
+            float: motor current in Amps"""
+        temp = self._read_float32(self._motor_current_addr)
+        self._motor_current = temp
+        return temp
+
+    def get_hours(self):
+        """Read the current hours of operation.
+
+        Returns:
+            float: hours of operation"""
+        temp = self._read_float32(self._hours_addr)
+        self._hours = temp
+        return temp
+
+    def get_pressure_scale(self):
+        """Read the pressure scale.
+
+        Returns:
+            str: the pressure scale unit."""
+        r = self._client.read_input_registers(self._press_unit_addr)
+        if r.isError():
+            raise RuntimeError("Could not get pressure units")
+        else:
+            self._press_unit = r.registers[0]
+            return self.press_unit
+
+    def get_temperature_scale(self):
+        """Read the temperature scale.
+
+        Returns:
+            str: the temperature scale unit."""
+        r = self._client.read_input_registers(self._temp_unit_addr)
+        if r.isError():
+            raise RuntimeError("Could not get temperature units")
+        else:
+            self._temp_unit = r.registers[0]
+            return self.temp_unit
+
+    def get_serial(self):
+        """Read the model name from the compressor
+
+        Returns:
+            str: model name from the compressor"""
+        r = self._client.read_input_registers(self._serial_addr)
+        self._model = r.registers[0]
+        return self._model
+
+    def get_model(self):
+        """Read the model name from the compressor
+
+        Returns:
+            str: model name from the compressor"""
+        r = self._client.read_input_registers(self._model_addr)
+        model = _model_code_to_string(r.registers[0].to_bytes(2, byteorder="big"))
+        self._model = model
+        return model
+
+    def get_software_rev(self):
+        """Read the software revision from the compressor
+
+        Returns:
+            str: software revision"""
+        s = self._read_float32(self._software_addr)
+        software = {:.3f}.format(s)
+        self._software_rev = software
+        return software
 
     def on(self):
         """Turn the compressor on."""
@@ -397,6 +848,7 @@ class Compressor(object):
 class DummyCompressor(Compressor):
     """A dummy compressor that just stores information without attempting
     any communication, for testing purposes"""
+
     def __init__(self, ip_address="0.0.0.0"):
         """Create a DummyCompressor object for testing purposes.
 
