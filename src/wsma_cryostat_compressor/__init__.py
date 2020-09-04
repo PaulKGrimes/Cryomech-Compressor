@@ -859,7 +859,7 @@ class Compressor(object):
     def _get_high_pressure_average(self):
         """Read the current average high side pressure."""
         temp = self._read_float32(self._high_press_avg_addr)
-        self._high_press_average = temp
+        self._high_press_avg = temp
 
     def get_high_pressure_average(self):
         """Read the current average high side pressure.
