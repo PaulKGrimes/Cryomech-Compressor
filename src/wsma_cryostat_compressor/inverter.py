@@ -83,12 +83,49 @@ class Inverter(object):
         """float: The output power of the inverter in kW."""
         return self._power * 0.1
 
+    @property
+    def port(self):
+        """str: The port connected to the inverter."""
+        return "{}, unit {}".format(self._port, self._unit_addr)
+
     def update(self):
         """Get updated values for all monitor values from the inverter"""
         self._get_frequency()
         self._get_current()
         self._get_voltage()
         self._get_power()
+
+    def __repr__(self):
+        """Brief description of the object."""
+        return "wsma_cryostat_compressor.inverter.Inverter on serial port {}.".format(self._port)
+
+    def __str__(self):
+        """Print the stored state of the inverter."""
+        if self.verbose:
+            return self.status
+        else:
+            return "\n".join(("Inverter",
+                              "Port      : {}".format(self.port),
+                              "Frequency : {} Hz".format(self.frequency)))
+
+    @property
+    def status(self):
+        """str: Detailed status of the inverter"""
+        return "\n".join(("Inverter",
+                          "Port      : {}".format(self.port),
+                          "Frequency : {} Hz".format(self.frequency),
+                          "Power     : {} kW".format(self.power),
+                          "Current   : {} A".format(self.current),
+                          "Voltage   : {} V".format(self.voltage)))
+
+    def print_status(self):
+        """Print all of the stored status"""
+        print(self.status)
+
+    def get_status(self):
+        """Update the current state and print it"""
+        self.update()
+        self.print_status()
 
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
