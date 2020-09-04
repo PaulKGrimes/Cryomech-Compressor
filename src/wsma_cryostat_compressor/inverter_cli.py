@@ -14,6 +14,8 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+__version__ = '0.1.1'
+
 import argparse
 import wsma_cryostat_selector
 
