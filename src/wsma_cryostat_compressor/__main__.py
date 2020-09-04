@@ -8,6 +8,8 @@ Why does this file exist, and why __main__? For more info, read:
 - https://docs.python.org/2/using/cmdline.html#cmdoption-m
 - https://docs.python.org/3/using/cmdline.html#cmdoption-m
 """
+__version__ = '0.1.0'
+
 from wsma_cryostat_compressor.cli import main
 
 if __name__ == "__main__":
