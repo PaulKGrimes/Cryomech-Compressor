@@ -130,24 +130,24 @@ class Inverter(object):
 
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
-        r = self._client.read_holding_register(self._frequency_addr, 2)
+        r = self._client.read_holding_registers(self._frequency_addr, 2)
         decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Big)
         result = decoder.decode_16bit_int()
         self._frequency = result
 
     def _get_current(self):
         """Get the output current from the inverter"""
-        r = self._client.read_holding_register(self._current_addr, 1)
+        r = self._client.read_holding_registers(self._current_addr, 1)
         self._current = r.registers[0]
 
     def _get_voltage(self):
         """Get the output voltage from the inverter"""
-        r = self._client.read_holding_register(self._voltage_addr, 1)
+        r = self._client.read_holding_registers(self._voltage_addr, 1)
         self._voltage = r.registers[0]
 
     def _get_power(self):
         """Get the output power from the inverter"""
-        r = self._client.read_holding_register(self._power_addr, 1)
+        r = self._client.read_holding_registers(self._power_addr, 1)
         self._power = r.registers[0]
 
     def _set_frequency(self, freq):
