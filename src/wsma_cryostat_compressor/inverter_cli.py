@@ -19,15 +19,18 @@ __version__ = '0.1.1'
 import argparse
 import wsma_cryostat_compressor.inverter
 
-default_port = 'COM3'
+default_address = 'inverter-p1'
+default_port = 502
 
 parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "
                                              "inverter.")
 
 parser.add_argument("-v", "--verbosity", action="store_true",
                     help="Display detailed output from inverter")
+parser.add_argument("-a", "--address", default=default_address,
+                    help="The TCPIP address of the inverter's modbus server")
 parser.add_argument("-p", "--port", default=default_port,
-                    help="The serial port connected to the inverter")
+                    help="The TCPIP port of the inverter's modbus server")
 parser.add_argument("-f", "--freq", help="Frequency to set the inverter to", type=float)
 
 
