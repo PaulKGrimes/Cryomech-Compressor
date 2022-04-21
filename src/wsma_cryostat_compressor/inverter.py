@@ -1,20 +1,19 @@
 __version__ = '0.1.1'
 
 from time import sleep
-import asyncio
-from pymodbus.client.asynchronous.serial import AsyncModbusSerialClient as ModbusClient
-from pymodbus.client.asynchronous import schedulers
+from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
-default_port = "COM3"
+default_address = "inverter-p1"
 
 
 class Inverter(object):
     """Class for communicating with the wSMA Compressor controller.
 
-    The Compressor object wraps a pymodbus.ModbusTcpClient instance which
-    communicates with the Compressor Digital Panel over TCP/IP.
+    The Inverter object wraps a pymodbus.ModbusTcpClient instance which
+    communicates with the TCP/IP Modbus client on the RS485 server attached
+    to the inverter
     """
     #: int: address of the inverter's frequency holding register.
     _frequency_addr = 0x0001
