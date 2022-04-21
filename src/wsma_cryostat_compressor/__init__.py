@@ -6,7 +6,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
 default_IP = "192.168.42.128"
-
+default_port = 502
 
 def _status_to_string(status_code):
     """Translate compressor status code to a human readable string.
@@ -289,7 +289,7 @@ class Compressor(object):
     #: int: address of the controller's Enable/Disable holding register
     _enable_addr = 1
 
-    def __init__(self, ip_address=default_IP):
+    def __init__(self, ip_address=default_IP, port=default_port):
         """Create a Compressor object for communication with one Compressor Digital Panel controller.
 
         Opens a Modbus TCP connection to the Compressor Digital Panel controller at `ip_address`, and reads the
@@ -299,10 +299,11 @@ class Compressor(object):
             ip_address (str): IP Address of the controller to communicate with
         """
         #: (:obj:`ModbusTcpClient`): Client for communicating with the controller
-        self._client = ModbusTcpClient(ip_address)
+        self._client = ModbusTcpClient(ip_address, port=port)
 
-        #: str: IP address of compressor.
+        #: str: IP address and port of compressor.
         self._ip_address = ip_address
+        self._port = port
 
         #: int: Current state of the compressor
         #       values are one of:
@@ -405,12 +406,12 @@ class Compressor(object):
 
         # bool: How much info should the Compressor return (particularly in __str__)
         self.verbose = False
-        
+
         # Get the values for the above attributes.
         self.update()
 
         # The following values are unlikely to change during operation, and so are not set by self.update()
-        
+
         # int: Pressure unit
         #       values are:
         #           0: PSI
@@ -556,17 +557,17 @@ class Compressor(object):
     def coolant_out(self):
         """float: Coolant OUT temperature in self.temp_units"""
         return self._coolant_out
-    
+
     @property
     def oil_temp(self):
         """float: Oil temperature in self.temp_units"""
         return self._oil_temp
-    
+
     @property
     def helium_temp(self):
         """float: Helium temperature in self.temp_units"""
         return self._helium_temp
-    
+
     @property
     def low_pressure(self):
         """float: Low side pressure in self.press_units"""
@@ -714,10 +715,10 @@ class Compressor(object):
             raise RuntimeError("Could not get current state")
         else:
             self._state = r.registers[0]
-            
+
     def get_state(self):
         """Read the current state of the compressor.
-        
+
         Returns:
             str: Current state of the compressor"""
         self._get_state()
@@ -777,7 +778,7 @@ class Compressor(object):
             float: coolant inlet temperature in units of self.temp_units"""
         self._get_coolant_in()
         return self.coolant_in
-    
+
     def _get_coolant_out(self):
         """Read the current coolant outlet temperature"""
         temp = self._read_float32(self._coolant_out_addr)
@@ -795,7 +796,7 @@ class Compressor(object):
         """Read the current helium temperature."""
         temp = self._read_float32(self._helium_temp_addr)
         self._helium_temp = temp
-    
+
     def get_helium_temp(self):
         """Read the current helium temperature.
 
@@ -808,7 +809,7 @@ class Compressor(object):
         """Read the current helium temperature."""
         temp = self._read_float32(self._oil_temp_addr)
         self._oil_temp = temp
-    
+
     def get_oil_temp(self):
         """Read the current helium temperature.
 
@@ -821,7 +822,7 @@ class Compressor(object):
         """Read the current low side pressure."""
         temp = self._read_float32(self._low_press_addr)
         self._low_press = temp
-    
+
     def get_low_pressure(self):
         """Read the current low side pressure.
 
@@ -829,7 +830,7 @@ class Compressor(object):
             float: low side pressure in units of self.press_units"""
         self._get_low_pressure()
         return self.low_pressure
-    
+
     def _get_low_pressure_average(self):
         """Read the current average low side pressure."""
         temp = self._read_float32(self._low_press_avg_addr)
