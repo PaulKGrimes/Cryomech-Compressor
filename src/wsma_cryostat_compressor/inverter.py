@@ -38,7 +38,7 @@ class Inverter(object):
             ip_address: str: the IP address of the Modbus TCP server.
         """
         # set up the communications
-        self._client = ModbusTCPClient(ip_address, port=port)
+        self._client = ModbusTcpClient(ip_address, port=port)
 
         #: str: IP address and port for the inverter.
         self._ip_address = ip_address
