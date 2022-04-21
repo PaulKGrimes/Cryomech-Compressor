@@ -6,7 +6,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
 default_IP = "192.168.42.128"
-
+default_port = 502
 
 def _status_to_string(status_code):
     """Translate compressor status code to a human readable string.
@@ -289,7 +289,7 @@ class Compressor(object):
     #: int: address of the controller's Enable/Disable holding register
     _enable_addr = 1
 
-    def __init__(self, ip_address=default_IP):
+    def __init__(self, ip_address=default_IP, port=default_port):
         """Create a Compressor object for communication with one Compressor Digital Panel controller.
 
         Opens a Modbus TCP connection to the Compressor Digital Panel controller at `ip_address`, and reads the
@@ -299,10 +299,11 @@ class Compressor(object):
             ip_address (str): IP Address of the controller to communicate with
         """
         #: (:obj:`ModbusTcpClient`): Client for communicating with the controller
-        self._client = ModbusTcpClient(ip_address)
+        self._client = ModbusTcpClient(ip_address, port=port)
 
-        #: str: IP address of compressor.
+        #: str: IP address and port of compressor.
         self._ip_address = ip_address
+        self._port = port
 
         #: int: Current state of the compressor
         #       values are one of:

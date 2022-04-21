@@ -6,6 +6,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
 default_address = "inverter-p1"
+default_port = 502
 
 
 class Inverter(object):
@@ -30,16 +31,17 @@ class Inverter(object):
     #: int: unit address
     _unit_addr = 0x01
 
-    def __init__(self, port=default_port):
+    def __init__(self, ip_address=default_address, port=default_port):
         """Create an inverter object for communication with the inverter.
 
         Args:
-            port: str: the RS485 port to talk on.
+            ip_address: str: the IP address of the Modbus TCP server.
         """
-        # set up the communications, however that works
-        self._client = ModbusClient(port)
+        # set up the communications
+        self._client = ModbusTCPClient(ip_address, port=port)
 
-        #: str: serial port for the inverter.
+        #: str: IP address and port for the inverter.
+        self._ip_address = ip_address
         self._port = port
 
         #: int: the frequency of the inverter, in units of 0.01 Hz.
@@ -104,18 +106,18 @@ class Inverter(object):
             return self.status
         else:
             return "\n".join(("Inverter",
-                              "Port      : {}".format(self.port),
-                              "Frequency : {} Hz".format(self.frequency)))
+                              "IP Address : {}".format(self.port),
+                              "Frequency  : {} Hz".format(self.frequency)))
 
     @property
     def status(self):
         """str: Detailed status of the inverter"""
         return "\n".join(("Inverter",
-                          "Port      : {}".format(self.port),
-                          "Frequency : {} Hz".format(self.frequency),
-                          "Power     : {} kW".format(self.power),
-                          "Current   : {} A".format(self.current),
-                          "Voltage   : {} V".format(self.voltage)))
+                          "IP Address : {}".format(self.port),
+                          "Frequency  : {} Hz".format(self.frequency),
+                          "Power      : {} kW".format(self.power),
+                          "Current    : {} A".format(self.current),
+                          "Voltage    : {} V".format(self.voltage)))
 
     def print_status(self):
         """Print all of the stored status"""
