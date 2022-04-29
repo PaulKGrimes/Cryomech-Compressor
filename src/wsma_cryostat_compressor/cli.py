@@ -19,7 +19,7 @@ __version__ = '0.1.1'
 import argparse
 import wsma_cryostat_compressor
 
-default_ip = '192.168.42.128'
+default_ip = '192.168.42.12'
 
 parser = argparse.ArgumentParser(description="Communicate with a Cryomech compressor's "
                                              "digital control panel.")
