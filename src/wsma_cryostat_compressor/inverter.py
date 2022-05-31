@@ -1,14 +1,26 @@
 __version__ = '0.1.1'
 
 from time import sleep
-import asyncio
+
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.payload import BinaryPayloadDecoder, BinaryPayloadBuilder
 from pymodbus.constants import Endian
+from pymodbus.exceptions import ModbusIOException
+
+from retrying import retry
 
 default_address = "inverter-p1"
 default_port = 502
 
+def _is_modbus_io_error(exception):
+    """Return True if an exception is an ModbusIOError, False otherwise.
+    
+    arguments:
+        exception : exception to test.
+        
+    returns:
+        boolean : is exception an IOError?"""
+    return isinstance(exception, ModbusIOException)
 
 class Inverter(object):
     """Class for communicating with the wSMA Compressor controller.
@@ -118,6 +130,17 @@ class Inverter(object):
             return "\n".join(("Inverter",
                               "IP Address : {}".format(self._address),
                               "Frequency  : {} Hz".format(self.frequency)))
+    
+    
+    @retry(retry_on_exception=_is_modbus_io_error, wait_random_min=300, wait_random_max=900, stop_max_attempt_number=5)
+    def _read_registers(self, address, count=1, unit=1):
+        """Read holding registers and check for errors, using the
+        retrying module to retry up to 5 times."""
+        r = self._client.read_holding_registers(address, count=count, unit=unit)
+        if _is_modbus_io_error(r):
+            raise r
+        else:
+            return r
 
     @property
     def status(self):
@@ -140,24 +163,24 @@ class Inverter(object):
 
     def _get_frequency(self):
         """Get the current frequency from the inverter"""
-        r = self._client.read_holding_registers(self._frequency_addr, count=2, unit=1)
+        r = self._read_registers(self._frequency_addr, count=2, unit=1)
         decoder = BinaryPayloadDecoder.fromRegisters(r.registers, byteorder=Endian.Big, wordorder=Endian.Big)
         result = decoder.decode_16bit_int()
         self._frequency = result
 
     def _get_current(self):
         """Get the output current from the inverter"""
-        r = self._client.read_holding_registers(self._current_addr, count=1, unit=1)
+        r = self._read_registers(self._current_addr, count=1, unit=1)
         self._current = r.registers[0]
 
     def _get_voltage(self):
         """Get the output voltage from the inverter"""
-        r = self._client.read_holding_registers(self._voltage_addr, count=1, unit=1)
+        r = self._read_registers(self._voltage_addr, count=1, unit=1)
         self._voltage = r.registers[0]
 
     def _get_power(self):
         """Get the output power from the inverter"""
-        r = self._client.read_holding_registers(self._power_addr, count=1, unit=1)
+        r = self._read_registers(self._power_addr, count=1, unit=1)
         self._power = r.registers[0]
 
     def _set_frequency(self, freq):
