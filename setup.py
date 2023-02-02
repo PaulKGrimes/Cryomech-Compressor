@@ -58,7 +58,7 @@ setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'pymodbus'
+        'pymodbus'<=2.5.3
     ],
     extras_require={
     },
