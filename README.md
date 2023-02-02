@@ -1,5 +1,5 @@
 # Cryomech-Compressor
-Python module for communicating with a Cryomech Helium Compressor over Modbus
+Python module for communicating with a Cryomech Helium Compressor over Modbus.  This Python module is currently called `wsma_cryostat_compressor` due to the history of this repo as a project for the wSMA Receiver upgrade at the Submillimeter Array.
 
 Requires PyModbus <= 2.5.3 at this time.
 
